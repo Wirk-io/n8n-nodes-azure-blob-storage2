@@ -58,7 +58,7 @@ export class AzureBlobStorage implements INodeType {
 		const operation = this.getNodeParameter('operation', 0) as string;
 		//Get credentials the user provided for this node
 		const credentials = (await this.getCredentials('azureStorageApi')) as IDataObject;
-		const { BlobServiceClient } = require('@azure/storage-blob');
+		const { BlobServiceClient, BlobSASPermissions, generateBlobSASQueryParameters } = require('@azure/storage-blob');
 		const blobServiceClient = BlobServiceClient.fromConnectionString(credentials.connectionString);
 
 		const items = this.getInputData();
@@ -92,6 +92,35 @@ export class AzureBlobStorage implements INodeType {
 						arr.push(blob);
 					}
 					returnData.push.apply(returnData, arr as IDataObject[]);
+				} else if (operation === 'getSAP') {
+					const blobName = this.getNodeParameter('blobName', i) as string;
+					const blockBlobClient = containerClient.getBlockBlobClient(blobName);
+
+					const permissions = new BlobSASPermissions();
+
+					permissions.read = true;
+					const startDate = new Date();
+					const expiryDate = new Date(startDate);
+					expiryDate.setHours(startDate.getDay() + 1);
+
+					const sasOptions = {
+						containerName,
+						blobName,
+						permissions: permissions.toString(),
+						startsOn: startDate,
+						expiresOn: expiryDate
+					};
+
+					const sasToken = generateBlobSASQueryParameters(sasOptions, credentials).toString();
+
+					const blobUrlWithSAS = `${blockBlobClient.url}?${sasToken}`;
+
+					const urlObject: IDataObject = {
+						blobUrlSAS: blobUrlWithSAS
+					};
+
+					returnData.push(urlObject);
+
 				} else if (operation === 'get') {
 					const blobName = this.getNodeParameter('blobName', i) as string;
 					const blockBlobClient = containerClient.getBlockBlobClient(blobName);

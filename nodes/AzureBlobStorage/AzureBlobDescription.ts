@@ -89,6 +89,12 @@ export const blobOperations: INodeProperties[] = [
 				action: "Get a blob"
 			},
 			{
+				name: 'GetSAP',
+				value: 'getSAP',
+				description: 'Get 1 day SAP URL for a blob',
+				action: "Get SAP URL"
+			},
+			{
 				name: 'Delete',
 				value: 'delete',
 				description: 'Delete a blob from a container',
