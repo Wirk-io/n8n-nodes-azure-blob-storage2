@@ -58,7 +58,12 @@ export class AzureBlobStorage implements INodeType {
 		const operation = this.getNodeParameter('operation', 0) as string;
 		//Get credentials the user provided for this node
 		const credentials = (await this.getCredentials('azureStorageApi')) as IDataObject;
-		const { BlobServiceClient, BlobSASPermissions, generateBlobSASQueryParameters } = require('@azure/storage-blob');
+		const {
+			BlobServiceClient,
+			BlobSASPermissions,
+			generateBlobSASQueryParameters,
+			StorageSharedKeyCredential,
+		} = require('@azure/storage-blob');
 		const blobServiceClient = BlobServiceClient.fromConnectionString(credentials.connectionString);
 
 		const items = this.getInputData();
@@ -73,8 +78,7 @@ export class AzureBlobStorage implements INodeType {
 					const createContainerResponse = await containerClient.create();
 
 					returnData.push(createContainerResponse as IDataObject);
-				}
-				else if(operation === 'delete'){
+				} else if (operation === 'delete') {
 					const containerName = this.getNodeParameter('container', i) as string;
 					const containerClient = blobServiceClient.getContainerClient(containerName);
 					const deleteContainerResponse = await containerClient.delete();
@@ -92,7 +96,7 @@ export class AzureBlobStorage implements INodeType {
 						arr.push(blob);
 					}
 					returnData.push.apply(returnData, arr as IDataObject[]);
-				} else if (operation === 'getSAP') {
+				} else if (operation === 'getsap') {
 					const blobName = this.getNodeParameter('blobName', i) as string;
 					const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 
@@ -100,57 +104,73 @@ export class AzureBlobStorage implements INodeType {
 
 					permissions.read = true;
 					const startDate = new Date();
+					startDate.setMinutes(startDate.getMinutes() - 5);
 					const expiryDate = new Date(startDate);
-					expiryDate.setHours(startDate.getDay() + 1);
+					expiryDate.setHours(startDate.getHours() + 24);
 
 					const sasOptions = {
 						containerName,
 						blobName,
 						permissions: permissions.toString(),
 						startsOn: startDate,
-						expiresOn: expiryDate
+						expiresOn: expiryDate,
 					};
 
-					const sasToken = generateBlobSASQueryParameters(sasOptions, credentials).toString();
+					if (!credentials || !credentials.connectionString) {
+						throw new Error("La chaîne de connexion est indéfinie ou non fournie dans les credentials.");
+					}
+					const connectionString = credentials.connectionString;
+					if (typeof connectionString !== 'string') {
+						throw new Error("La chaîne de connexion est indéfinie ou n'est pas une chaîne de caractères.");
+					}
+					const accountName = connectionString.match(/AccountName=([^;]+)/);
+					const accountKey = connectionString.match(/AccountKey=([^;]+)/);
+
+					if (!accountName || !accountKey) {
+						throw new Error("accountName ou accountKey est null");
+					}
+					const sharedKey = new StorageSharedKeyCredential(accountName[1], accountKey[1]);
+
+					const sasToken = generateBlobSASQueryParameters(sasOptions, sharedKey).toString();
 
 					const blobUrlWithSAS = `${blockBlobClient.url}?${sasToken}`;
 
 					const urlObject: IDataObject = {
-						blobUrlSAS: blobUrlWithSAS
+						blobUrlSAS: blobUrlWithSAS,
 					};
 
 					returnData.push(urlObject);
-
 				} else if (operation === 'get') {
 					const blobName = this.getNodeParameter('blobName', i) as string;
 					const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 					const downloadBlockBlobResponse = await blockBlobClient.download();
 
 					const newItemBinary: IBinaryKeyData = {};
-					const buffer = await streamToBuffer(downloadBlockBlobResponse.readableStreamBody) as Buffer;
+					const buffer = (await streamToBuffer(
+						downloadBlockBlobResponse.readableStreamBody,
+					)) as Buffer;
 					newItemBinary.data = await this.helpers.prepareBinaryData(buffer);
 					newItemBinary.data.mimeType = downloadBlockBlobResponse.contentType;
 
 					returnData.push({
 						json: {
-							"blobName": blobName,
-							"blobType": downloadBlockBlobResponse.blobType,
-							"contentEncoding" : downloadBlockBlobResponse.contentEncoding,
-							"contentLanguage" : downloadBlockBlobResponse.contentLanguage,
-							"contentLength" : downloadBlockBlobResponse.contentLength,
-							"contentType" : downloadBlockBlobResponse.contentType,
-							"lastAccessed" : downloadBlockBlobResponse.lastAccessed,
-							"lastModified" : downloadBlockBlobResponse.lastModified,
-							"leaseDuration" : downloadBlockBlobResponse.leaseDuration,
-							"leaseState" : downloadBlockBlobResponse.leaseState,
-							"leaseStatus" : downloadBlockBlobResponse.leaseStatus,
+							blobName: blobName,
+							blobType: downloadBlockBlobResponse.blobType,
+							contentEncoding: downloadBlockBlobResponse.contentEncoding,
+							contentLanguage: downloadBlockBlobResponse.contentLanguage,
+							contentLength: downloadBlockBlobResponse.contentLength,
+							contentType: downloadBlockBlobResponse.contentType,
+							lastAccessed: downloadBlockBlobResponse.lastAccessed,
+							lastModified: downloadBlockBlobResponse.lastModified,
+							leaseDuration: downloadBlockBlobResponse.leaseDuration,
+							leaseState: downloadBlockBlobResponse.leaseState,
+							leaseStatus: downloadBlockBlobResponse.leaseStatus,
 						},
 						pairedItem: {
-						  item: i,
+							item: i,
 						},
 						binary: Object.keys(newItemBinary).length === 0 ? undefined : newItemBinary,
-					  });
-
+					});
 				} else if (operation === 'upload') {
 					const binaryPropertyName = this.getNodeParameter('binaryPropertyName', i) as string;
 
@@ -178,12 +198,12 @@ export class AzureBlobStorage implements INodeType {
 						binaryDataBuffer.length,
 					);
 					returnData.push(uploadBlobResponse as IDataObject);
-				} else if(operation === 'delete'){
+				} else if (operation === 'delete') {
 					const blobName = this.getNodeParameter('blobName', i) as string;
 					const blockBlobClient = containerClient.getBlockBlobClient(blobName);
 					const options = {
-						deleteSnapshots: 'include' // or 'only'
-					  }
+						deleteSnapshots: 'include',
+					};
 
 					const deleteBlobResponse = await blockBlobClient.deleteIfExists(options);
 					returnData.push(deleteBlobResponse as IDataObject);
@@ -207,16 +227,15 @@ export class AzureBlobStorage implements INodeType {
 	}
 }
 
-
 async function streamToBuffer(readableStream: NodeJS.ReadableStream) {
-    return new Promise((resolve, reject) => {
-      const chunks: Buffer[] = [];
-      readableStream.on("data", (data: WithImplicitCoercion<ArrayBuffer | SharedArrayBuffer>) => {
-        chunks.push(data instanceof Buffer ? data : Buffer.from(data));
-      });
-      readableStream.on("end", () => {
-        resolve(Buffer.concat(chunks));
-      });
-      readableStream.on("error", reject);
-    });
-  }
+	return new Promise((resolve, reject) => {
+		const chunks: Buffer[] = [];
+		readableStream.on('data', (data: WithImplicitCoercion<ArrayBuffer | SharedArrayBuffer>) => {
+			chunks.push(data instanceof Buffer ? data : Buffer.from(data));
+		});
+		readableStream.on('end', () => {
+			resolve(Buffer.concat(chunks));
+		});
+		readableStream.on('error', reject);
+	});
+}

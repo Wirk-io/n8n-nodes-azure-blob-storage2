@@ -1,15 +1,15 @@
 ![Banner image](https://user-images.githubusercontent.com/10284570/173569848-c624317f-42b1-45a6-ab09-f0ea3c247648.png)
 
-# n8n-nodes-azure-blob-storage
+# n8n-nodes-azure-blob-storage2
 
-![Build](https://github.com/pregress/n8n-nodes-azure-blob-storage/actions/workflows/build.yml/badge.svg)
+![Build](https://github.com/pregress/n8n-nodes-azure-blob-storage2/actions/workflows/build.yml/badge.svg)
 [![NPM version][npm-version-image]][npm-url]
 [![NPM downloads][npm-downloads-image]][npm-downloads-url]
 
-[npm-url]: https://npmjs.org/package/n8n-nodes-azure-blob-storage
-[npm-version-image]: https://img.shields.io/npm/v/n8n-nodes-azure-blob-storage.svg?style=flat
-[npm-downloads-image]: https://img.shields.io/npm/dm/n8n-nodes-azure-blob-storage.svg?style=flat
-[npm-downloads-url]: https://npmcharts.com/compare/n8n-nodes-azure-blob-storage?minimal=true
+[npm-url]: https://npmjs.org/package/n8n-nodes-azure-blob-storage2
+[npm-version-image]: https://img.shields.io/npm/v/n8n-nodes-azure-blob-storage2.svg?style=flat
+[npm-downloads-image]: https://img.shields.io/npm/dm/n8n-nodes-azure-blob-storage2.svg?style=flat
+[npm-downloads-url]: https://npmcharts.com/compare/n8n-nodes-azure-blob-storage2?minimal=true
 
 
 This is an n8n community node. It lets you use Azure blob storage in your n8n workflows.
@@ -40,6 +40,7 @@ Follow the [installation guide](https://docs.n8n.io/integrations/community-nodes
     - List
     - Upload
     - Get
+    - Get URL SAP
     - Delete
 
 
@@ -60,7 +61,7 @@ Tested on: 0.209.4
 
 ## Version history
 
-- __0.1.0__ Updated crypto.js https://github.com/pregress/n8n-nodes-azure-blob-storage/pull/4
+- __0.1.0__ Updated crypto.js https://github.com/pregress/n8n-nodes-azure-blob-storage2/pull/4
 - __0.0.2__ Added: Get Blob, Delete Blob, Delete Container
 - __0.0.1__ Inital version
 
@@ -76,6 +77,6 @@ npm link
 
 In `~/.n8n/nodes`
 ```
-npm link n8n-nodes-azure-blob-storage
+npm link n8n-nodes-azure-blob-storage2
 n8n start
 ```

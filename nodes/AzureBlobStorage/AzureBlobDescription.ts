@@ -26,14 +26,13 @@ export const containerOperations: INodeProperties[] = [
 				value: 'getMany',
 				description: 'List all the containers in a storage account',
 				action: 'Get many containers',
-			},			
+			},
 			{
 				name: 'Delete',
 				value: 'delete',
 				description: 'Delete a container',
 				action: 'Delete a container',
 			},
-			
 		],
 
 		default: 'getMany',
@@ -86,20 +85,20 @@ export const blobOperations: INodeProperties[] = [
 				name: 'Get',
 				value: 'get',
 				description: 'Get the binary data from a blob',
-				action: "Get a blob"
+				action: 'Get a blob',
 			},
 			{
-				name: 'GetSAP',
-				value: 'getSAP',
+				name: 'Get SAP',
+				value: 'getsap',
 				description: 'Get 1 day SAP URL for a blob',
-				action: "Get SAP URL"
+				action: 'Get SAP URL',
 			},
 			{
 				name: 'Delete',
 				value: 'delete',
 				description: 'Delete a blob from a container',
-				action: 'Delete a blob'
-			}
+				action: 'Delete a blob',
+			},
 		],
 
 		default: 'getMany',
@@ -109,7 +108,7 @@ export const blobOperations: INodeProperties[] = [
 		name: 'container',
 		type: 'string',
 		noDataExpression: true,
-		required:true,
+		required: true,
 
 		displayOptions: {
 			show: {
@@ -128,7 +127,6 @@ export const blobOperations: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['blob'],
-				operation: ['upload', 'get', 'delete'],
 			},
 		},
 		description:
